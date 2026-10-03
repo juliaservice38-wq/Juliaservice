@@ -47,7 +47,7 @@ export default function Fiche() {
     }
   };
 
-  const civ = useRefs('civilite'), lien = useRefs('lien_famille'), auto = useRefs('autonomie');
+  const civ = useRefs('civilite'), lien = useRefs('lien_famille'), auto = useRefs('autonomie'), typesClient = useRefs('type_client');
   if (loading) return <Screen title="Client"><Loading /></Screen>;
 
   const titre = nouveau ? 'Nouveau client' : `${client.prenom ?? ''} ${client.nom ?? ''}`.trim();
@@ -69,6 +69,7 @@ export default function Fiche() {
             <H>Identité</H>
             <Row><Select label="Civilité" value={client.civilite} options={civ} onChange={set('civilite')} /><Field label="Nom *" value={client.nom} onChange={set('nom')} /></Row>
             <Row><Field label="Prénom" value={client.prenom} onChange={set('prenom')} /><DateField label="Date de naissance" value={client.date_naissance} onChange={set('date_naissance')} /></Row>
+            <Select label="Type de fiche" allowEmpty={false} value={client.type_client ?? 'particulier'} options={typesClient} onChange={set('type_client')} />
             <Field label="Adresse" value={client.adresse} onChange={set('adresse')} />
             <Row><Field label="Code postal" value={client.code_postal} onChange={set('code_postal')} keyboard="numeric" /><Field label="Ville" value={client.ville} onChange={set('ville')} /></Row>
             <Row><Field label="Téléphone" value={client.telephone} onChange={set('telephone')} keyboard="phone-pad" /><Field label="E-mail" value={client.email} onChange={set('email')} keyboard="email-address" /></Row>
@@ -142,6 +143,11 @@ function Contrats({ clientId }: { clientId: string }) {
   const [rows, setRows] = useState<Rec[]>([]);
   const [edit, setEdit] = useState<Rec | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const [payeurs, setPayeurs] = useState<{ value: string; label: string }[]>([]);
+  useEffect(() => {
+    supabase.from('clients').select('id,nom,type_client').in('type_client', ['entreprise', 'organisme']).order('nom')
+      .then(({ data }) => setPayeurs((data ?? []).map((c: Rec) => ({ value: c.id, label: c.nom }))));
+  }, []);
   const charger = useCallback(() => {
     supabase.from('contrats').select('*').eq('client_id', clientId).order('date_debut', { ascending: false }).then(({ data }) => setRows(data ?? []));
   }, [clientId]);
@@ -166,6 +172,7 @@ function Contrats({ clientId }: { clientId: string }) {
           <Row><Select label="Type de contrat *" value={edit.type_contrat} options={types} onChange={set('type_contrat')} /><Select label="Financeur" value={edit.financeur} options={fin} onChange={set('financeur')} /></Row>
           <Row><NumField label="Tarif horaire (€)" value={edit.tarif_horaire} onChange={set('tarif_horaire')} /><Select label="Le tarif est en" value={edit.tarif_mode} options={modes} onChange={set('tarif_mode')} />
             {taxe && <NumField label="TVA (%)" value={edit.taux_tva} onChange={set('taux_tva')} />}</Row>
+          <Select label="Facturé à (entreprise tierce, si sous-traitance)" value={edit.payeur_id} options={payeurs} onChange={set('payeur_id')} />
           <NumField label="Heures par semaine" value={edit.heures_par_semaine} onChange={set('heures_par_semaine')} />
           <Row><DateField label="Début" value={edit.date_debut} onChange={set('date_debut')} /><DateField label="Fin" value={edit.date_fin} onChange={set('date_fin')} /></Row>
           <Select label="Contrat actif" allowEmpty={false} value={edit.actif === false ? 'non' : 'oui'} options={OUI_NON} onChange={(v) => set('actif')(v !== 'non')} />
