@@ -1,0 +1,18 @@
+name: Keep Supabase alive
+
+on:
+  schedule:
+    - cron: '17 6 * * 1,4'   # lundi et jeudi, 06:17 UTC
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase (lecture seule)
+        run: |
+          curl -fsS --retry 3 --max-time 30 \
+            "https://dyenxftufkkdzjjecnuu.supabase.co/rest/v1/ref_valeurs?select=id&limit=1" \
+            -H "apikey: sb_publishable_yubJVdP6_MmmJwhkUREJMQ_V2Vs6tmN" \
+            -H "Authorization: Bearer sb_publishable_yubJVdP6_MmmJwhkUREJMQ_V2Vs6tmN" \
+            -o /dev/null -w "HTTP %{http_code}\n"
