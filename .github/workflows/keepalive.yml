@@ -2,17 +2,31 @@ name: Keep Supabase alive
 
 on:
   schedule:
-    - cron: '17 6 * * 1,4'   # lundi et jeudi, 06:17 UTC
+    - cron: '17 6 * * *'   # tous les jours, 06:17 UTC
+    - cron: '43 18 * * *'  # et tous les soirs, 18:43 UTC
   workflow_dispatch:
 
 jobs:
   ping:
     runs-on: ubuntu-latest
     steps:
-      - name: Ping Supabase (lecture seule)
+      - name: Ping Supabase (lectures seules sur plusieurs tables)
+        env:
+          BASE: https://dyenxftufkkdzjjecnuu.supabase.co
+          KEY: sb_publishable_yubJVdP6_MmmJwhkUREJMQ_V2Vs6tmN
         run: |
-          curl -fsS --retry 3 --max-time 30 \
-            "https://dyenxftufkkdzjjecnuu.supabase.co/rest/v1/ref_valeurs?select=id&limit=1" \
-            -H "apikey: sb_publishable_yubJVdP6_MmmJwhkUREJMQ_V2Vs6tmN" \
-            -H "Authorization: Bearer sb_publishable_yubJVdP6_MmmJwhkUREJMQ_V2Vs6tmN" \
-            -o /dev/null -w "HTTP %{http_code}\n"
+          set -e
+          for path in \
+            "rest/v1/ref_valeurs?select=id&limit=5" \
+            "rest/v1/clients?select=id&limit=5" \
+            "rest/v1/visites?select=id&limit=5" \
+            "rest/v1/entreprise?select=id&limit=1" \
+            "auth/v1/health"
+          do
+            printf '%s -> ' "$path"
+            curl -sS --retry 3 --max-time 30 \
+              "$BASE/$path" \
+              -H "apikey: $KEY" \
+              -H "Authorization: Bearer $KEY" \
+              -o /dev/null -w "HTTP %{http_code}\n"
+          done
